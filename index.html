@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Sistema de Envíos - OLVA</title>
+
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-PBZY0KMFNH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-PBZY0KMFNH');
+  </script>
+
+  <style>
+    body { font-family: sans-serif; margin: 30px; }
+    input, button, select { padding: 10px; margin: 5px 10px 5px 0; }
+    .form-section { border: 1px solid #ccc; padding: 15px; margin-top: 10px; background: #f9f9f9; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+    th { background: #f0f0f0; }
+    .action-btn { padding: 5px 10px; margin: 0 5px; }
+  </style>
+</head>
+<body>
+
+  <h1>Sistema de Envíos - OLVA</h1>
+
+  <!-- Formulario de registro de cliente -->
+  <div class="form-section">
+    <h2>Registro de Cliente</h2>
+    <label for="cliente_nombre">Nombre del Cliente:</label><br>
+    <input type="text" id="cliente_nombre" placeholder="Ej: Juan Perez"><br>
+    
+    <label for="cliente_id">ID del Cliente:</label><br>
+    <input type="text" id="cliente_id" placeholder="Ej: cliente_001"><br>
+    
+    <label for="cliente_tipo">Tipo de Cliente:</label><br>
+    <select id="cliente_tipo">
+      <option value="nuevo">Nuevo</option>
+      <option value="recurrente">Recurrente</option>
+    </select><br>
+    
+    <button onclick="registrarCliente()">Registrar Cliente</button>
+  </div>
+
+  <!-- Formulario de envío -->
+  <div class="form-section">
+    <h2>Registro de Envío</h2>
+    <label for="cliente_seleccionado">Cliente:</label><br>
+    <select id="cliente_seleccionado">
+      <option value="">Seleccione un cliente</option>
+    </select><br>
+    
+    <label for="producto">Producto:</label><br>
+    <input type="text" id="producto" placeholder="Ej: Televisor 55''"><br>
+    
+    <label for="peso">Peso (kg):</label><br>
+    <input type="number" id="peso" placeholder="Ej: 5.5" step="0.1" min="0.1"><br>
+    
+    <label for="monto">Monto del Envío (S/):</label><br>
+    <input type="number" id="monto" placeholder="Ej: 25.50" step="0.01" min="0.01"><br>
+    
+    <label for="destino">Destino:</label><br>
+    <select id="destino">
+      <option value="Lima">Lima</option>
+      <option value="Arequipa">Arequipa</option>
+      <option value="Trujillo">Trujillo</option>
+      <option value="Cusco">Cusco</option>
+      <option value="Provincia">Provincia</option>
+    </select><br>
+    
+    <button onclick="registrarEnvio()">Registrar Envío</button>
+  </div>
+
+  <!-- Tabla de clientes -->
+  <h2>Clientes Registrados</h2>
+  <table id="tabla_clientes">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>ID</th>
+        <th>Tipo</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <!-- Tabla de envíos -->
+  <h2>Envíos Registrados</h2>
+  <table id="tabla_envios">
+    <thead>
+      <tr>
+        <th>Cliente</th>
+        <th>Producto</th>
+        <th>Peso (kg)</th>
+        <th>Monto (S/)</th>
+        <th>Destino</th>
+        <th>Fecha</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    // Almacenamiento de datos
+    let clientes = [];
+    let envios = [];
+
+    // Función para enviar eventos a GA4
+    function enviarEvento(nombreEvento, parametros = {}) {
+      gtag('event', nombreEvento, parametros);
+      console.log('Evento enviado:', nombreEvento, parametros);
+    }
+
+    // Registrar nuevo cliente
+    function registrarCliente() {
+      const nombre = document.getElementById('cliente_nombre').value.trim();
+      const id = document.getElementById('cliente_id').value.trim();
+      const tipo = document.getElementById('cliente_tipo').value;
+
+      if (!nombre || !id) {
+        alert("Por favor completa todos los campos del cliente.");
+        return;
+      }
+
+      // Verificar si el cliente ya existe
+      if (clientes.some(cliente => cliente.id === id)) {
+        alert("Ya existe un cliente con este ID.");
+        return;
+      }
+
+      const nuevoCliente = { nombre, id, tipo };
+      clientes.push(nuevoCliente);
+
+      // Actualizar lista de clientes en el select
+      actualizarSelectClientes();
+
+      // Registrar en la tabla
+      const tabla = document.getElementById('tabla_clientes').getElementsByTagName('tbody')[0];
+      const fila = tabla.insertRow();
+      fila.insertCell(0).textContent = nombre;
+      fila.insertCell(1).textContent = id;
+      fila.insertCell(2).textContent = tipo === 'nuevo' ? 'Nuevo' : 'Recurrente';
+      
+      // Botón para eliminar cliente
+      const celdaAcciones = fila.insertCell(3);
+      const btnEliminar = document.createElement('button');
+      btnEliminar.textContent = 'Eliminar';
+      btnEliminar.className = 'action-btn';
+      btnEliminar.onclick = function() { eliminarCliente(id); };
+      celdaAcciones.appendChild(btnEliminar);
+
+      // Enviar evento a GA4
+      enviarEvento('cliente_registrado', { 
+        cliente_id: id, 
+        nombre_cliente: nombre, 
+        tipo_cliente: tipo 
+      });
+
+      // Limpiar formulario
+      document.getElementById('cliente_nombre').value = "";
+      document.getElementById('cliente_id').value = "";
+    }
+
+    // Actualizar select de clientes
+    function actualizarSelectClientes() {
+      const select = document.getElementById('cliente_seleccionado');
+      select.innerHTML = '<option value="">Seleccione un cliente</option>';
+      
+      clientes.forEach(cliente => {
+        const option = document.createElement('option');
+        option.value = cliente.id;
+        option.textContent = `${cliente.nombre} (${cliente.id})`;
+        select.appendChild(option);
+      });
+    }
+
+    // Eliminar cliente
+    function eliminarCliente(id) {
+      if (!confirm("¿Está seguro de eliminar este cliente y todos sus envíos?")) return;
+      
+      // Eliminar envíos del cliente
+      envios = envios.filter(envio => envio.cliente_id !== id);
+      actualizarTablaEnvios();
+      
+      // Eliminar cliente
+      clientes = clientes.filter(cliente => cliente.id !== id);
+      
+      // Actualizar UI
+      actualizarSelectClientes();
+      actualizarTablaClientes();
+      
+      // Enviar evento a GA4
+      enviarEvento('cliente_eliminado', { cliente_id: id });
+    }
+
+    // Actualizar tabla de clientes
+    function actualizarTablaClientes() {
+      const tabla = document.getElementById('tabla_clientes').getElementsByTagName('tbody')[0];
+      tabla.innerHTML = '';
+      
+      clientes.forEach(cliente => {
+        const fila = tabla.insertRow();
+        fila.insertCell(0).textContent = cliente.nombre;
+        fila.insertCell(1).textContent = cliente.id;
+        fila.insertCell(2).textContent = cliente.tipo === 'nuevo' ? 'Nuevo' : 'Recurrente';
+        
+        const celdaAcciones = fila.insertCell(3);
+        const btnEliminar = document.createElement('button');
+        btnEliminar.textContent = 'Eliminar';
+        btnEliminar.className = 'action-btn';
+        btnEliminar.onclick = function() { eliminarCliente(cliente.id); };
+        celdaAcciones.appendChild(btnEliminar);
+      });
+    }
+
+    // Registrar nuevo envío
+    function registrarEnvio() {
+      const clienteId = document.getElementById('cliente_seleccionado').value;
+      const producto = document.getElementById('producto').value.trim();
+      const peso = parseFloat(document.getElementById('peso').value);
+      const monto = parseFloat(document.getElementById('monto').value);
+      const destino = document.getElementById('destino').value;
+
+      if (!clienteId || !producto || isNaN(peso) || isNaN(monto)) {
+        alert("Por favor completa todos los campos del envío.");
+        return;
+      }
+
+      const cliente = clientes.find(c => c.id === clienteId);
+      if (!cliente) {
+        alert("Cliente no encontrado.");
+        return;
+      }
+
+      const fecha = new Date().toLocaleString();
+      const nuevoEnvio = {
+        cliente_id: clienteId,
+        cliente_nombre: cliente.nombre,
+        producto,
+        peso,
+        monto,
+        destino,
+        fecha
+      };
+
+      envios.push(nuevoEnvio);
+      actualizarTablaEnvios();
+
+      // Enviar evento a GA4
+      enviarEvento('envio_registrado', {
+        cliente_id: clienteId,
+        nombre_cliente: cliente.nombre,
+        tipo_cliente: cliente.tipo,
+        producto,
+        peso_kg: peso,
+        monto_soles: monto,
+        destino,
+        fecha_envio: fecha
+      });
+
+      // Limpiar formulario
+      document.getElementById('producto').value = "";
+      document.getElementById('peso').value = "";
+      document.getElementById('monto').value = "";
+    }
+
+    // Actualizar tabla de envíos
+    function actualizarTablaEnvios() {
+      const tabla = document.getElementById('tabla_envios').getElementsByTagName('tbody')[0];
+      tabla.innerHTML = '';
+      
+      envios.forEach((envio, index) => {
+        const fila = tabla.insertRow();
+        fila.insertCell(0).textContent = envio.cliente_nombre;
+        fila.insertCell(1).textContent = envio.producto;
+        fila.insertCell(2).textContent = envio.peso;
+        fila.insertCell(3).textContent = envio.monto.toFixed(2);
+        fila.insertCell(4).textContent = envio.destino;
+        fila.insertCell(5).textContent = envio.fecha;
+        
+        // Botón para retirar envío
+        const celdaAcciones = fila.insertCell(6);
+        const btnRetirar = document.createElement('button');
+        btnRetirar.textContent = 'Retirar';
+        btnRetirar.className = 'action-btn';
+        btnRetirar.onclick = function() { retirarEnvio(index); };
+        celdaAcciones.appendChild(btnRetirar);
+      });
+    }
+
+    // Retirar envío
+    function retirarEnvio(index) {
+      const envio = envios[index];
+      if (!confirm(`¿Retirar envío de ${envio.cliente_nombre} (${envio.producto})?`)) return;
+      
+      // Enviar evento a GA4 antes de eliminar
+      enviarEvento('envio_retirado', {
+        cliente_id: envio.cliente_id,
+        nombre_cliente: envio.cliente_nombre,
+        producto: envio.producto,
+        peso_kg: envio.peso,
+        monto_soles: envio.monto,
+        destino: envio.destino,
+        fecha_envio: envio.fecha
+      });
+      
+      // Eliminar envío
+      envios.splice(index, 1);
+      actualizarTablaEnvios();
+    }
+
+    // Inicialización
+    document.addEventListener('DOMContentLoaded', function() {
+      // Podrías cargar datos iniciales aquí si lo deseas
+    });
+  </script>
+</body>
+</html>
