@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Sistema de Envíos - OLVA</title>
+
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-PBZY0KMFNH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-PBZY0KMFNH');
+  </script>
+
+  <style>
+    body { font-family: sans-serif; margin: 30px; }
+    input, button, select { padding: 10px; margin: 5px 10px 5px 0; }
+    .form-section { border: 1px solid #ccc; padding: 15px; margin-top: 10px; background: #f9f9f9; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+    th { background: #f0f0f0; }
+    .action-btn { padding: 5px 10px; margin: 0 5px; }
+  </style>
+</head>
+<body>
+
+  <h1>Sistema de Envíos - OLVA</h1>
+
+  <!-- Registro de Cliente -->
+  <div class="form-section">
+    <h2>Registrar Cliente</h2>
+    <input type="text" id="clienteId" placeholder="ID Cliente">
+    <input type="text" id="clienteNombre" placeholder="Nombre">
+    <input type="email" id="clienteCorreo" placeholder="Correo">
+    <button onclick="registrarCliente()">Registrar</button>
+  </div>
+
+  <!-- Selección de Cliente Activo -->
+  <div class="form-section">
+    <h2>Seleccionar Cliente</h2>
+    <select id="clienteSelect">
+      <option value="">-- Seleccione un cliente --</option>
+    </select>
+  </div>
+
+  <!-- Registro de Envío -->
+  <div class="form-section">
+    <h2>Nuevo Envío</h2>
+    <input type="text" id="producto" placeholder="Producto">
+    <input type="number" id="peso" placeholder="Peso (kg)" step="0.01">
+    <button onclick="registrarEnvio()">Registrar Envío</button>
+  </div>
+
+  <!-- Lista de envíos -->
+  <div class="form-section">
+    <h2>Envíos Registrados</h2>
+    <table id="tablaEnvios">
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Producto</th>
+          <th>Peso (kg)</th>
+          <th>Precio ($)</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Renglones se agregarán con JS -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    const clientes = [];
+    const envios = [];
+
+    function registrarCliente() {
+      const id = document.getElementById("clienteId").value.trim();
+      const nombre = document.getElementById("clienteNombre").value.trim();
+      const correo = document.getElementById("clienteCorreo").value.trim();
+
+      if (!id || !nombre || !correo) {
+        alert("Completa todos los campos del cliente.");
+        return;
+      }
+
+      if (clientes.find(c => c.id === id)) {
+        alert("Ese ID de cliente ya existe.");
+        return;
+      }
+
+      const nuevoCliente = { id, nombre, correo };
+      clientes.push(nuevoCliente);
+
+      const select = document.getElementById("clienteSelect");
+      const option = document.createElement("option");
+      option.value = id;
+      option.textContent = `${nombre} (${id})`;
+      select.appendChild(option);
+
+      // Limpiar inputs
+      document.getElementById("clienteId").value = "";
+      document.getElementById("clienteNombre").value = "";
+      document.getElementById("clienteCorreo").value = "";
+
+      gtag('event', 'cliente_registrado', { cliente_id: id });
+    }
+
+    function registrarEnvio() {
+      const clienteId = document.getElementById("clienteSelect").value;
+      const producto = document.getElementById("producto").value.trim();
+      const peso = parseFloat(document.getElementById("peso").value);
+
+      if (!clienteId || !producto || isNaN(peso) || peso <= 0) {
+        alert("Completa todos los campos del envío.");
+        return;
+      }
+
+      const cliente = clientes.find(c => c.id === clienteId);
+      const precio = peso * 5; // $5 por kg
+
+      envios.push({ cliente, producto, peso, precio });
+
+      actualizarTabla();
+      document.getElementById("producto").value = "";
+      document.getElementById("peso").value = "";
+
+      gtag('event', 'envio_registrado', {
+        cliente_id: clienteId,
+        producto,
+        peso,
+        precio
+      });
+    }
+
+    function eliminarEnvio(index) {
+      const envio = envios[index];
+      envios.splice(index, 1);
+      actualizarTabla();
+
+      gtag('event', 'envio_eliminado', {
+        cliente_id: envio.cliente.id,
+        producto: envio.producto
+      });
+    }
+
+    function actualizarTabla() {
+      const tbody = document.getElementById("tablaEnvios").querySelector("tbody");
+      tbody.innerHTML = "";
+
+      envios.forEach((e, index) => {
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+          <td>${e.cliente.nombre}</td>
+          <td>${e.producto}</td>
+          <td>${e.peso.toFixed(2)}</td>
+          <td>$${e.precio.toFixed(2)}</td>
+          <td><button class="action-btn" onclick="eliminarEnvio(${index})">Eliminar</button></td>
+        `;
+
+        tbody.appendChild(row);
+      });
+    }
+  </script>
+
+</body>
+</html>
